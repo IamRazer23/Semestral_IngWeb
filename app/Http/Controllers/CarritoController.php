@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Auth;
 
 use App\Models\Carrito;
 use App\Models\Autoparte;
@@ -14,7 +15,7 @@ class CarritoController extends Controller
     public function index()
     {
         $carritos = Carrito::with('autoparte.categoria')
-            ->where('user_id', auth()->id())
+            ->where('user_id', Auth::id())
             ->get();
 
         $subtotal = $carritos->sum(function ($item) {
@@ -43,7 +44,7 @@ class CarritoController extends Controller
         }
 
         // Buscar si ya existe en el carrito
-        $carritoItem = Carrito::where('user_id', auth()->id())
+        $carritoItem = Carrito::where('user_id', Auth::id())
             ->where('autoparte_id', $autoparte->id)
             ->first();
 
@@ -66,7 +67,7 @@ class CarritoController extends Controller
         } else {
             // Si no existe, crear nuevo item
             Carrito::create([
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'autoparte_id' => $autoparte->id,
                 'cantidad' => $validated['cantidad'],
                 'precio_unitario' => $autoparte->precio,
@@ -83,7 +84,7 @@ class CarritoController extends Controller
     public function actualizar(Request $request, Carrito $carrito)
     {
         // Verificar que el carrito pertenezca al usuario autenticado
-        if ($carrito->user_id !== auth()->id()) {
+        if ($carrito->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -111,7 +112,7 @@ class CarritoController extends Controller
     public function eliminar(Carrito $carrito)
     {
         // Verificar que el carrito pertenezca al usuario autenticado
-        if ($carrito->user_id !== auth()->id()) {
+        if ($carrito->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -126,7 +127,7 @@ class CarritoController extends Controller
      */
     public function vaciar()
     {
-        Carrito::where('user_id', auth()->id())->delete();
+        Carrito::where('user_id', Auth::id())->delete();
 
         return redirect()->back()
             ->with('success', 'Carrito vaciado');
@@ -137,7 +138,7 @@ class CarritoController extends Controller
      */
     public function conteo()
     {
-        $conteo = Carrito::where('user_id', auth()->id())->sum('cantidad');
+        $conteo = Carrito::where('user_id', Auth::id())->sum('cantidad');
         return response()->json(['conteo' => $conteo]);
     }
 }

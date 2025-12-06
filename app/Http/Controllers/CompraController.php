@@ -7,6 +7,7 @@ use App\Models\Factura;
 use App\Models\DetalleFactura;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class CompraController extends Controller
 {
@@ -16,7 +17,7 @@ class CompraController extends Controller
     public function resumen()
     {
         $carritos = Carrito::with('autoparte.categoria')
-            ->where('user_id', auth()->id())
+            ->where('user_id', Auth::id())
             ->get();
 
         if ($carritos->isEmpty()) {
@@ -40,7 +41,7 @@ class CompraController extends Controller
     public function procesar(Request $request)
     {
         $carritos = Carrito::with('autoparte')
-            ->where('user_id', auth()->id())
+            ->where('user_id', Auth::id())
             ->get();
 
         if ($carritos->isEmpty()) {
@@ -69,7 +70,7 @@ class CompraController extends Controller
 
             // Crear factura
             $factura = Factura::create([
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'subtotal' => $subtotal,
                 'itbms' => $itbms,
                 'total' => $total,
@@ -91,13 +92,13 @@ class CompraController extends Controller
                 // Reducir stock (esto también registra en historial)
                 $item->autoparte->reducirStock(
                     $item->cantidad,
-                    auth()->id(),
+                    Auth::id(),
                     "Venta - Factura #{$factura->numero_factura}"
                 );
             }
 
             // Vaciar carrito
-            Carrito::where('user_id', auth()->id())->delete();
+            Carrito::where('user_id', Auth::id())->delete();
 
             DB::commit();
 
@@ -115,39 +116,50 @@ class CompraController extends Controller
     /**
      * Mostrar factura generada
      */
-    public function factura(Factura $factura)
-    {
-        // Verificar que la factura pertenezca al usuario autenticado
-        // (excepto si es admin u operador)
-        if (!auth()->user()->esAdministrador() && 
-            !auth()->user()->esOperador() && 
-            $factura->user_id !== auth()->id()) {
-            abort(403);
-        }
+    public function factura(Factura $factura, Request $request)
+{
+    $user = $request->user(); // ✅ evita ambigüedad con helpers/facades
 
-        $factura->load('detalles.autoparte.categoria', 'usuario');
-
-        return view('compra.factura', compact('factura'));
+    if (!$user) {
+        return redirect()->route('login')->with('error', 'Debes iniciar sesión.');
     }
 
+    // Permisos: admin u operador, o dueño de la factura
+    $esAdmin    = method_exists($user, 'esAdministrador') ? $user->esAdministrador() : false;
+    $esOperador = method_exists($user, 'esOperador')      ? $user->esOperador()      : false;
+
+    if (!$esAdmin && !$esOperador && $factura->user_id !== $user->id) {
+        abort(403);
+    }
+
+    // Carga relaciones. Usa el nombre REAL en el modelo Factura (usuario o user)
+    // Si en Factura tienes public function usuario(){ return $this->belongsTo(User::class,'user_id'); }
+    $factura->load(['detalles.autoparte.categoria', 'usuario']);
+
+    return view('compra.factura', compact('factura'));
+}
     /**
      * Descargar factura en PDF
      */
-    public function descargarPDF(Factura $factura)
-    {
-        // Verificar permisos
-        if (!auth()->user()->esAdministrador() && 
-            !auth()->user()->esOperador() && 
-            $factura->user_id !== auth()->id()) {
-            abort(403);
-        }
+public function descargarPDF(Factura $factura, Request $request)
+{
+    $user = $request->user(); // ✅
 
-        $factura->load('detalles.autoparte.categoria', 'usuario');
-
-        // Aquí puedes usar una librería como DomPDF o TCPDF
-        // Por ahora retornamos la vista
-        return view('compra.factura-pdf', compact('factura'));
+    if (!$user) {
+        return redirect()->route('login')->with('error', 'Debes iniciar sesión.');
     }
+
+    $esAdmin    = method_exists($user, 'esAdministrador') ? $user->esAdministrador() : false;
+    $esOperador = method_exists($user, 'esOperador')      ? $user->esOperador()      : false;
+
+    if (!$esAdmin && !$esOperador && $factura->user_id !== $user->id) {
+        abort(403);
+    }
+
+    $factura->load(['detalles.autoparte.categoria', 'usuario']);
+
+    return view('compra.factura-pdf', compact('factura'));
+}
 
     /**
      * Historial de compras del usuario
@@ -155,7 +167,7 @@ class CompraController extends Controller
     public function historial()
     {
         $facturas = Factura::with('detalles')
-            ->where('user_id', auth()->id())
+            ->where('user_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 

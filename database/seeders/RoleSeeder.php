@@ -4,55 +4,64 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // Inserta o actualiza por 'nombre' para evitar duplicados si corres varias veces
         $roles = [
+
+            // Rol 1: Administrador
             [
-                'nombre' => 'Administrador',
+                'nombre'      => 'Administrador',
                 'descripcion' => 'Acceso completo al sistema',
-                'permisos' => [
-                    'usuarios' => true,
-                    'roles' => true,
-                    'inventario' => true,
-                    'categorias' => true,
+                'permisos'    => [
+                    'usuarios'     => true,
+                    'roles'        => true,
+                    'inventario'   => true,
+                    'categorias'   => true,
+                    'autopartes'   => true,
+                    'carritos'     => true,
                     'estadisticas' => true,
-                    'reportes' => true
+                    'facturacion'  => true,
+                    'reportes'     => true,
                 ],
             ],
+
+            // Rol 2: Operador
             [
-                'nombre' => 'Operador',
-                'descripcion' => 'Gestión de inventario',
-                'permisos' => [
-                    'inventario' => true,
-                    'categorias' => true,
-                    'buscar' => true
+                'nombre'      => 'Operador',
+                'descripcion' => 'Gestión del inventario y facturación básica',
+                'permisos'    => [
+                    'inventario'   => true,
+                    'categorias'   => true,
+                    'autopartes'   => true,
+                    'facturacion'  => true,
+                    'carritos'     => true,
                 ],
             ],
+
+            // Rol 3: Cliente
             [
-                'nombre' => 'Cliente',
-                'descripcion' => 'Compra de autopartes',
-                'permisos' => [
-                    'catalogo' => true,
-                    'carrito' => true,
-                    'compras' => true
+                'nombre'      => 'Cliente',
+                'descripcion' => 'Puede visualizar productos y realizar compras',
+                'permisos'    => [
+                    'catalogo'     => true,
+                    'carrito'      => true,
+                    'compras'      => true,
                 ],
             ],
         ];
 
-        foreach ($roles as $r) {
+        foreach ($roles as $rol) {
             DB::table('rols')->updateOrInsert(
-                ['nombre' => $r['nombre']],
+                ['nombre' => $rol['nombre']], // clave única del rol
                 [
-                    'descripcion' => $r['descripcion'],
-                    // Si tu columna `permisos` es JSON en la migración, puedes guardar el array directo.
-                    // Si NO es JSON, usa json_encode($r['permisos'])
-                    'permisos' => json_encode($r['permisos']),
-                    'updated_at' => now(),
-                    'created_at' => now(),
+                    'descripcion' => $rol['descripcion'],
+                    'permisos'    => json_encode($rol['permisos']), // la BD almacena JSON
+                    'created_at'  => Carbon::now(),
+                    'updated_at'  => Carbon::now(),
                 ]
             );
         }

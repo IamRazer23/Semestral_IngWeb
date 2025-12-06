@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Carrito;
 use App\Models\Categoria;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,13 +32,12 @@ class ViewServiceProvider extends ServiceProvider
             
             $view->with('categoriasMenu', $categoriasMenu);
         });
-
         // Compartir conteo del carrito solo si el usuario está autenticado
         View::composer('*', function ($view) {
             $carritoConteo = 0;
             
-            if (auth()->check() && auth()->user()->esCliente()) {
-                $carritoConteo = Carrito::where('user_id', auth()->id())->sum('cantidad');
+            if (Auth::check() && Auth::user()->esCliente()) {
+                $carritoConteo = Carrito::where('user_id', Auth::id())->sum('cantidad');
             }
             
             $view->with('carritoConteo', $carritoConteo);
@@ -45,7 +45,7 @@ class ViewServiceProvider extends ServiceProvider
 
         // Compartir información del usuario actual
         View::composer('*', function ($view) {
-            $usuario = auth()->user();
+            $usuario = Auth::user();
             
             $view->with('usuario', $usuario);
         });

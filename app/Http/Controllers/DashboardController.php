@@ -8,15 +8,15 @@ use App\Models\Factura;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardController extends Controller
 {
     /**
      * Mostrar el dashboard según el rol del usuario
      */
-    public function index()
-    {
-        $user = auth()->user();
+    public function index($request) {
+    $user = $request->user();
 
         if ($user->esAdministrador()) {
             return $this->dashboardAdmin();
@@ -135,7 +135,7 @@ class DashboardController extends Controller
      */
     private function dashboardCliente()
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         // Mis compras
         $misCompras = Factura::with('detalles.autoparte')

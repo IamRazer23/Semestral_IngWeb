@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 
 class UsuarioController extends Controller
 {
@@ -86,7 +87,7 @@ class UsuarioController extends Controller
     public function destroy(User $usuario)
     {
         // No permitir eliminar al propio usuario
-        if ($usuario->id === auth()->id()) {
+        if ($usuario->id === Auth::id()) {
             return redirect()->route('usuarios.index')
                 ->with('error', 'No puedes eliminar tu propio usuario');
         }

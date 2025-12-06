@@ -9,42 +9,53 @@ class Rol extends Model
 {
     use HasFactory;
 
+    /**
+     * Nombre de la tabla asociada
+     * (importante porque tu tabla se llama "rols" y no "roles")
+     */
     protected $table = 'rols';
 
+    /**
+     * Campos asignables masivamente
+     */
     protected $fillable = [
         'nombre',
         'descripcion',
-        'permisos',
-    ];
-
-    protected $casts = [
-        'permisos' => 'array',
+        'permisos', // JSON
     ];
 
     /**
-     * Relación: Un rol tiene muchos usuarios
+     * Cast para que "permisos" se convierta automáticamente en array
+     */
+    protected $casts = [
+        'permisos' => 'array', // <- Muy importante
+    ];
+
+    /**
+     * Relación: un rol tiene muchos usuarios
+     * FK: users.rol_id → rols.id
      */
     public function usuarios()
     {
-        return $this->hasMany(User::class, 'rol_id');
+        return $this->hasMany(\App\Models\User::class, 'rol_id');
     }
 
     /**
-     * Verificar si el rol tiene un permiso específico
+     * Verificar si dentro de este rol existe un permiso específico
+     * (Este método es opcional porque normalmente lo llamamos desde User)
      */
-    public function tienePermiso($permiso): bool
+    public function permite(string $permiso): bool
     {
-        if (!$this->permisos) {
-            return false;
+        $permisos = $this->permisos ?? [];
+
+        // normalizamos clave solicitada
+        $clave = mb_strtolower($permiso);
+
+        $normalizados = [];
+        foreach ($permisos as $k => $v) {
+            $normalizados[mb_strtolower($k)] = (bool) $v;
         }
-        return isset($this->permisos[$permiso]) && $this->permisos[$permiso] === true;
-    }
 
-    /**
-     * Scope para roles activos
-     */
-    public function scopeActivos($query)
-    {
-        return $query->where('estado', 1);
+        return $normalizados[$clave] ?? false;
     }
 }

@@ -6,6 +6,7 @@ use App\Models\Autoparte;
 use App\Models\Categoria;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class AutoparteController extends Controller
 {
@@ -100,7 +101,7 @@ class AutoparteController extends Controller
 
         // Registrar en historial si se agregó stock inicial
         if ($autoparte->stock > 0) {
-            $autoparte->aumentarStock($autoparte->stock, auth()->id(), 'Stock inicial');
+            $autoparte->aumentarStock($autoparte->stock, Auth::id(), 'Stock inicial');
         }
 
         return redirect()->route('autopartes.index')
@@ -176,7 +177,7 @@ class AutoparteController extends Controller
             
             \App\Models\HistorialInventario::create([
                 'autoparte_id' => $autoparte->id,
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'tipo_movimiento' => 'ajuste',
                 'cantidad' => abs($diferencia),
                 'stock_anterior' => $stockAnterior,
@@ -222,16 +223,16 @@ class AutoparteController extends Controller
             $stockAnterior = $autoparte->stock;
             
             if ($validated['tipo'] == 'entrada') {
-                $autoparte->aumentarStock($validated['cantidad'], auth()->id(), $validated['motivo']);
+                $autoparte->aumentarStock($validated['cantidad'], Auth::id(), $validated['motivo']);
             } elseif ($validated['tipo'] == 'salida') {
-                $autoparte->reducirStock($validated['cantidad'], auth()->id(), $validated['motivo']);
+                $autoparte->reducirStock($validated['cantidad'], Auth::id(), $validated['motivo']);
             } else {
                 // Ajuste directo
                 $autoparte->update(['stock' => $validated['cantidad']]);
                 
                 \App\Models\HistorialInventario::create([
                     'autoparte_id' => $autoparte->id,
-                    'user_id' => auth()->id(),
+                    'user_id' => Auth::id(),
                     'tipo_movimiento' => 'ajuste',
                     'cantidad' => abs($validated['cantidad'] - $stockAnterior),
                     'stock_anterior' => $stockAnterior,

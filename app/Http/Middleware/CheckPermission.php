@@ -4,31 +4,31 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth; // 👈 usamos el facade importado
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckPermission
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  \Illuminate\Http\Request  $request
+     * @param  \Closure  $next
+     * @param  string  $permission
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        // Verificar si el usuario está autenticado
-        if (!auth()->check()) {
+        $user = $request->user();
+        if (!$user) {
             return redirect()->route('login');
         }
 
-        // Verificar si el usuario está activo
-        if (auth()->user()->estado != 1) {
-            auth()->logout();
+        // 'estado' es boolean si lo casteaste en User::$casts; usa comparación laxa
+        if (!$user->estado) {
+            Auth::logout(); // 👈 sin backslash
             return redirect()->route('login')
                 ->with('error', 'Tu cuenta ha sido deshabilitada.');
         }
 
-        // Verificar si el usuario tiene el permiso
-        if (!auth()->user()->tienePermiso($permission)) {
+        if (!method_exists($user, 'tienePermiso') || !$user->tienePermiso($permission)) {
             abort(403, 'No tienes permiso para realizar esta acción.');
         }
 
